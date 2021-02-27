@@ -1,0 +1,11 @@
+#eg:
+#       aes-256-gcm:CUndSZnYsPKcu6Kj8THVMBHD@103.156.50.107:39772
+SEPARAT_LIST=": @"
+
+ALG_INDEX=1
+PASSWD_INDEX=2
+IP_INDEX=3
+PORT_INDEX=4
+
+DECODER="base64 -d"
+EXECUTE="ss-local -s $IP -p $PORT -l $LISTEN -k $PASSWD -m $ALG"
