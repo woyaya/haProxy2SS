@@ -17,7 +17,6 @@ USAGE(){
 #Functions
 ############################
 EXIT(){
-	echo "exit $index"
 	exit $index
 }
 ############################
@@ -106,7 +105,7 @@ done
 #Start server
 
 [ "$CHECK" = "1" ] && {
-	${EXECUTE} & 
+	${EXECUTE} >/dev/null 2>&1 &
 	PID=$!
 
 	TIMES=0
@@ -124,7 +123,7 @@ done
 		COST=`expr $END "-" $BEGIN`
 		TIMES=`expr $TIMES "+" $COST`
 	done
-	kill $PID
+	kill $PID 2>/dev/null
 	#take more then 3S, ignore it
 	[ $TIMES -gt $TIME_THRESHOLD ] && EXIT
 	#TIMES=${TIMES:0-4}
@@ -132,6 +131,6 @@ done
 	LOG "$TIMES\t$resource"
 	echo "$TIMES\t$resource" >>$DIST
 }
-[ "$RUN" = "1" ] && nohup ${EXECUTE} &
+[ "$RUN" = "1" ] && nohup ${EXECUTE} >/dev/null &
 
 EXIT

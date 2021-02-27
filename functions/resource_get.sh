@@ -21,8 +21,8 @@ SRC_GET(){
 	#eg:
 	#  sed -e '/SS节点/,/<\/pre>/!d;/<pre>/,/<\/pre>/!d;s/.*<pre>//;s/<\/pre>.*//'
 	SED_CMD="/$KEY/,/<\/$TAG>/!d;/<$TAG>/,/<\/$TAG>/!d;s/.*<$TAG>//;s/<\/$TAG>.*//"
-	LOG "Download resource from $URL"
-#	curl --max-filesize 2M -s $PARAM $URL | sed -e "${SED_CMD}" >$FILE
+	echo "Download resource from $URL"
+	curl --max-filesize 2M -s $PARAM $URL | sed -e "${SED_CMD}" >$FILE
 	#check file size
 	[ -s $FILE ] && return 0
 	return 1
@@ -31,7 +31,7 @@ SRC_GET(){
 SRC_DECODE(){
 	SRC="$1"
 	DST="$2"
-	LOG "Try decode $SRC with decoder \"$DECODE\""
+	echo "Try decode $SRC with decoder \"$DECODE\""
 	[ -z "$DECODE" -o "$DECODE" = "none" ] && cp $SRC $DST || {
 		echo "cat $SRC | $DECODE >$DST"
 		cat $SRC | $DECODE >$DST
@@ -41,7 +41,6 @@ SRC_DECODE(){
 #Chekc params
 [ $# = 0 ] && {
 	USAGE $0
-	exit 1
 }
 
 while getopts ":f:k:t:u:d:" opt; do
@@ -64,7 +63,6 @@ while getopts ":f:k:t:u:d:" opt; do
 		;;
 		*)
 			USAGE $0
-			exit 1
 		;;
 	esac
 done
@@ -86,8 +84,7 @@ SRC_GET "$PREFIX.src"
 [ "$?" != "0" ] && {
 	WRN "Get resource fail, try get it via proxy"
 	SRC_GET "$PREFIX.src" "-x socks5h://127.0.0.1:$LISTEN_PORT"
-	[ "$?" != "0" ] && 
-		ERR "Get resource from $URL fail"
+	[ "$?" != "0" ] && ERR "Get resource from $URL fail"
 }
 SRC_DECODE $PREFIX.src $PREFIX.dec
 [ "$?" != 0 ] && ERR "Decode resource from $URL fail: $PREFIX.src"

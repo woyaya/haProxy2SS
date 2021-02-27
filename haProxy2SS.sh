@@ -4,8 +4,11 @@
 LISTEN_PORT=10801	#haproxy service port
 LISTEN_IP=127.0.0.1	#or 0.0.0.0 or something else
 SERVER_PORT=20000
-PARALLEL_COUNT=100
+PARALLEL_COUNT=50
 
+#1: ERR; 2:ERR+WRN; 3:ERR+WRN+LOG
+LOG_LEVEL=${LOG_LEVEL:-2}
+export LOG_LEVEL
 #common proxy configs
 TIMEOUT=1
 
@@ -42,6 +45,12 @@ done
 SOURCES=`ls $SRC_DIR/* 2>/dev/null`
 [ -z "$SOURCES" ] && ERR "Can not find source file @ dir \"./$SRC_DIR\""
 
+echo "Get server count and port list from haproxy config file"
+set +H
+PORT_LIST=`cat /etc/haproxy/haproxy.cfg | sed "s/^[ \t]*//g;/^server/!d;s/.*$LISTEN_IP://;s/ .*//"`
+[ -z "$PORT_LIST" ] && ERR "Can not find valid haproxy server info"
+PORT_COUNT=`echo $PORT_LIST | wc -w`
+
 childs=()
 resource_list=$WORK_DIR/resource.lst
 rm -rf $resource_list
@@ -68,13 +77,14 @@ valid=$WORK_DIR/valid.lst
 rm -rf $valid
 
 TIME_OUT=1
+echo "Check resource. It may take long time"
 for timeout in `seq 1 5`;do
 	count=0
 	port=$SERVER_PORT
 	while read line;do
 		PREFIX=`echo "$line" | sed 's/:\/\/.*//'`
 		[ ! -f $PROTO_DIR/${PREFIX} ] && {
-			LOG "Unsupported protocol \"$PREFIX\""
+			WRN "Unsupported protocol \"$PREFIX\""
 			continue
 		}
 		
@@ -98,22 +108,20 @@ for timeout in `seq 1 5`;do
 		continue
 	}
 	LINES=`cat $valid | sed 's/^[0-9]\t//' | sort | uniq | wc -l`
-	[ $LINES -ge $SERVER_COUNT ] && break
+	[ $LINES -ge $PORT_COUNT ] && break
 done
 
-LOG "Get server count and port list from haproxy config file"
-set +H
-PORT_LIST=`cat /etc/haproxy/haproxy.cfg | sed "s/^[ \t]*//g;/^server/!d;s/.*$LISTEN_IP://;s/ .*//"`
-[ -z "$PORT_LIST" ] && ERR "Can not find valid haproxy server info"
-PORT_COUNT=`echo $PORT_LIST | wc -w`
+echo "Find and kill old proxy process. It needs root authority"
 FILTER_PARAM=`echo $PORT_LIST | sed 's/ /\\\\|/g'`
 KILL_LIST=`sudo netstat -lt4np | grep $FILTER_PARAM | awk '{print $7}' | sed 's/\/.*//'`
-cat $valid | sort | sed 's/^[0-9]\t//'  | uniq | head -n $PORT_COUNT >$resource_list
+cat $valid | sort | sed 's/^[0-9]*\t//'  | uniq | head -n $PORT_COUNT >$resource_list
 index=0
 PORT_ARRAY=($PORT_LIST)
+[ -n "$KILL_LIST" ] && kill $KILL_LIST
+echo "Create new proxy process from new configs"
 while read line;do
 	PORT=${PORT_ARRAY[$index]}
 	[ -z "$PORT" ] && break
 	$FUN_DIR/resource_process.sh -r -l $PORT "$line" &
-	index=`exprt $index "+" 1`
+	index=`expr $index "+" 1`
 done <$resource_list

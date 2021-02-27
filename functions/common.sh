@@ -1,13 +1,17 @@
 
+LOG_LEVEL=${LOG_LEVEL:-2}
+
 LOG(){
-	echo "${EXEC}: $@"
+	[ $LOG_LEVEL -ge 3 ] && echo "${EXEC}: $@"
 }
 WRN(){
-	LOG "$@"
-	logger -s "${EXEC}: $@"
+	[ $LOG_LEVEL -ge 2 ] && {
+		LOG "$@"
+		logger -s "${EXEC}: $@"
+	}
 }
 ERR(){
-	WRN "$@"
+	[ $LOG_LEVEL -ge 1 ] && WRN "$@"
 	exit 1
 }
 
