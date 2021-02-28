@@ -6,6 +6,8 @@ LISTEN_IP=127.0.0.1	#or 0.0.0.0 or something else
 SERVER_PORT=20000
 PARALLEL_COUNT=50
 
+DEBUG=0
+export DEBUG
 #1: ERR; 2:ERR+WRN; 3:ERR+WRN+LOG
 LOG_LEVEL=${LOG_LEVEL:-2}
 export LOG_LEVEL
@@ -23,16 +25,18 @@ FUN_DIR=functions
 PROTO_DIR=protocols
 mkdir -p $WORK_DIR
 
-FUNTIONS="$FUN_DIR/resource_get.sh $FUN_DIR/common.sh"
+. ./$FUN_DIR/common.sh
+
+[ `whoami` != "root" ] && ERR "Should run as root"
+
+FUNTIONS="$FUN_DIR/resource_get.sh $FUN_DIR/resource_process.sh $FUN_DIR/common.sh"
 for file in $FUNTIONS;do
 	[ ! -f $file ] && ERR "Can not find file $file"
 done
 
-. ./$FUN_DIR/common.sh
-
 function cleanup() {
 	LOG "Cleanup $WORK_DIR"
-#	rm  -rf $WORK_DIR
+	[ "$DEBUG" != "1" ] && rm  -rf $WORK_DIR
 }
 trap cleanup EXIT
 
@@ -113,7 +117,7 @@ done
 
 echo "Find and kill old proxy process. It needs root authority"
 FILTER_PARAM=`echo $PORT_LIST | sed 's/ /\\\\|/g'`
-KILL_LIST=`sudo netstat -lt4np | grep $FILTER_PARAM | awk '{print $7}' | sed 's/\/.*//'`
+KILL_LIST=`netstat -lt4np | grep $FILTER_PARAM | awk '{print $7}' | sed 's/\/.*//'`
 cat $valid | sort | sed 's/^[0-9]*\t//'  | uniq | head -n $PORT_COUNT >$resource_list
 index=0
 PORT_ARRAY=($PORT_LIST)

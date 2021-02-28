@@ -13,6 +13,9 @@ USAGE(){
 }
 
 #Functions
+cleanup(){
+	[ "$DEBUG" != "1" ] && rm -rf $PREFIX.dec $PREFIX.src
+}
 
 #Usage: SRC_GET FILE_NAME [CURL PARAM]
 SRC_GET(){
@@ -79,6 +82,8 @@ WORK_DIR=${WORK_DIR:-/tmp/$EXEC}
 PREFIX=${PREFIX:-$WORK_DIR/$$-$EXEC}
 mkdir -p $WORK_DIR
 
+trap cleanup EXIT
+
 LOG "Try get resource from $URL, with key \"$KEY\" and tag \"$TAG\""
 SRC_GET "$PREFIX.src"
 [ "$?" != "0" ] && {
@@ -89,4 +94,3 @@ SRC_GET "$PREFIX.src"
 SRC_DECODE $PREFIX.src $PREFIX.dec
 [ "$?" != 0 ] && ERR "Decode resource from $URL fail: $PREFIX.src"
 cat $PREFIX.dec >>${DIST}
-rm -rf $PREFIX.dec $PREFIX.src
