@@ -27,6 +27,38 @@ mkdir -p $WORK_DIR
 
 . ./$FUN_DIR/common.sh
 
+USAGE(){
+	echo "Usage: $1 -s -v -d -h"
+	echo "     -s: save last result to current dir"
+	echo "     -v: verbose output"
+	echo "     -d: debug mode"
+	echo "     -h: print this"
+	exit -1
+}
+SAVE=""
+while getopts "svd" opt; do
+	case $opt in
+		s)
+			SAVE=1
+			shift 1
+		;;
+		v)
+			LOG_LEVEL=`expr $LOG_LEVEL "+" 1`
+			shift 1
+		;;
+		d)
+			DEBUG=1
+			shift 1
+		;;
+		*)
+			USAGE $0
+		;;
+	esac
+done
+
+
+
+
 [ `whoami` != "root" ] && ERR "Should run as root"
 
 FUNTIONS="$FUN_DIR/resource_get.sh $FUN_DIR/resource_process.sh $FUN_DIR/common.sh"
@@ -129,3 +161,6 @@ while read line;do
 	$FUN_DIR/resource_process.sh -r -l $PORT "$line" &
 	index=`expr $index "+" 1`
 done <$resource_list
+
+[ "$SAVE" = "1" ] && mv $resource_list ./
+echo "Finished"

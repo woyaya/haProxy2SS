@@ -8,4 +8,4 @@ IP_INDEX=3
 PORT_INDEX=4
 
 DECODER="base64 -d"
-EXECUTE="ss-local -s $IP -p $PORT -l $LISTEN -k $PASSWD -m $ALG"
+EXECUTE="ss-local -l $LISTEN -s $IP -p $PORT -k $PASSWD -m $ALG"
