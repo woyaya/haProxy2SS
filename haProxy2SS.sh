@@ -3,14 +3,12 @@
 #haProxy configs
 LISTEN_PORT=10801	#haproxy service port
 LISTEN_IP=127.0.0.1	#or 0.0.0.0 or something else
-SERVER_PORT=20000
+TEST_PORT=20000
 PARALLEL_COUNT=50
 
 DEBUG=0
-export DEBUG
 #1: ERR; 2:ERR+WRN; 3:ERR+WRN+LOG
 LOG_LEVEL=${LOG_LEVEL:-2}
-export LOG_LEVEL
 #common proxy configs
 TIMEOUT=1
 
@@ -56,10 +54,9 @@ while getopts "svd" opt; do
 	esac
 done
 
-
-
-
 [ `whoami` != "root" ] && ERR "Should run as root"
+export DEBUG
+export LOG_LEVEL
 
 FUNTIONS="$FUN_DIR/resource_get.sh $FUN_DIR/resource_process.sh $FUN_DIR/common.sh"
 for file in $FUNTIONS;do
@@ -116,7 +113,7 @@ TIME_OUT=1
 echo "Check resource. It may take long time"
 for timeout in `seq 1 5`;do
 	count=0
-	port=$SERVER_PORT
+	port=$TEST_PORT
 	while read line;do
 		PREFIX=`echo "$line" | sed 's/:\/\/.*//'`
 		[ ! -f $PROTO_DIR/${PREFIX} ] && {
@@ -124,7 +121,7 @@ for timeout in `seq 1 5`;do
 			continue
 		}
 		
-		index=`expr $port "-" $SERVER_PORT`
+		index=`expr $port "-" $TEST_PORT`
 		$FUN_DIR/resource_process.sh -c -i $index -l $port -t $timeout -f $valid "$line" &
 		count=`expr $count "+" 1`
 		[ "$count" -lt $PARALLEL_COUNT ] && {
@@ -133,7 +130,7 @@ for timeout in `seq 1 5`;do
 		} || {
 			wait -n
 			port=$?
-			port=`expr $SERVER_PORT "+" $port`
+			port=`expr $TEST_PORT "+" $port`
 		}
 	done <$resource_list
 	#wait all jobs finished
@@ -150,7 +147,8 @@ done
 echo "Find and kill old proxy process. It needs root authority"
 FILTER_PARAM=`echo $PORT_LIST | sed 's/ /\\\\|/g'`
 KILL_LIST=`netstat -lt4np | grep $FILTER_PARAM | awk '{print $7}' | sed 's/\/.*//'`
-cat $valid | sort | sed 's/^[0-9]*\t//'  | uniq | head -n $PORT_COUNT >$resource_list
+count=`expr $PORT_COUNT "*" 10`
+cat $valid | sort | sed 's/^[0-9]*\t//'  | uniq | head -n $count >$resource_list
 index=0
 PORT_ARRAY=($PORT_LIST)
 [ -n "$KILL_LIST" ] && kill $KILL_LIST
@@ -158,8 +156,9 @@ echo "Create new proxy process from new configs"
 while read line;do
 	PORT=${PORT_ARRAY[$index]}
 	[ -z "$PORT" ] && break
-	$FUN_DIR/resource_process.sh -r -l $PORT "$line" &
+	$FUN_DIR/resource_process.sh -r -l $PORT "$line"
 	index=`expr $index "+" 1`
+	[ $index -ge $PORT_COUNT ] && break
 done <$resource_list
 
 [ "$SAVE" = "1" ] && mv $resource_list ./

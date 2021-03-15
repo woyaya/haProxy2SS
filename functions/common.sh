@@ -1,6 +1,10 @@
 
 LOG_LEVEL=${LOG_LEVEL:-2}
 
+DBG(){
+	[ "$DEBUG" = "1" ] && echo "$@"
+}
+
 LOG(){
 	[ $LOG_LEVEL -ge 3 ] && echo "${EXEC}: $@"
 }

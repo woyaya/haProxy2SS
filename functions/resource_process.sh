@@ -118,7 +118,10 @@ done
 		BEGIN=`date +"%s%3N"`
 		curl --max-time $TIMEOUT -s -x socks5h://127.0.0.1:$LISTEN $URL
 		RESULT=$?
-		[ "$?" != "0" ] && EXIT
+		[ "$RESULT" != "0" ] && {
+			kill $PID 2>/dev/null
+			EXIT
+		}
 		END=`date +"%s%3N"`
 		COST=`expr $END "-" $BEGIN`
 		TIMES=`expr $TIMES "+" $COST`
@@ -131,6 +134,16 @@ done
 	LOG "$TIMES\t$resource"
 	echo "$TIMES\t$resource" >>$DIST
 }
-[ "$RUN" = "1" ] && nohup ${EXECUTE} >/dev/null &
+[ "$RUN" = "1" ] && {
+	[ "$DEBUG" != "1" ] && {
+		REDIR=">/dev/null 2>&1"
+		NOHUP=nohup
+	} || {
+		REDIR=""
+		NOHUP=""
+	}
+	DBG "${NOHUP} ${EXECUTE} ${REDIR}"
+	${NOHUP} ${EXECUTE} >/dev/null 2>&1 &
+}
 
 EXIT
