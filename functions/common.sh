@@ -30,3 +30,7 @@ wait_childs(){
 	done
 	return $EXIT
 }
+
+get_prefix(){
+	echo "$1" | sed '/:\/\//!d;s/:\/\/.*//'
+}

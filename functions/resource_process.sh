@@ -76,7 +76,7 @@ for chk in $KEY_LIST;do
 	[ -z "$val" ] && EXIT "Key \"$chk\" not defined"
 done
 
-PREFIX=`echo "$resource" | sed 's/:\/\/.*//'`
+PREFIX=`get_prefix "$resource"`
 [ ! -f $PROTO_DIR/$PREFIX ] && {
 	WRN "Unsupport resource: $resource"
 	EXIT
@@ -105,6 +105,7 @@ done
 #Start server
 
 [ "$CHECK" = "1" ] && {
+	echo  "${EXECUTE}"
 	${EXECUTE} >/dev/null 2>&1 &
 	PID=$!
 

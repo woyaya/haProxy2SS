@@ -21,14 +21,34 @@ cleanup(){
 SRC_GET(){
 	FILE="$1"
 	PARAM="$2"
-	#eg:
-	#  sed -e '/SS节点/,/<\/pre>/!d;/<pre>/,/<\/pre>/!d;s/.*<pre>//;s/<\/pre>.*//'
-	SED_CMD="/$KEY/,/<\/$TAG>/!d;/<$TAG>/,/<\/$TAG>/!d;s/.*<$TAG>//;s/<\/$TAG>.*//"
+	local TYPE=`get_prefix "$URL"`
 	echo "Download resource from $URL"
-	curl --max-filesize 2M -s $PARAM $URL | sed -e "${SED_CMD}" >$FILE
+	[ "$TYPE" = "file" ] && {
+		URL=`echo "$URL" | sed "s/.*:\/\///"`
+		[ ! -f $URL ] && ERR "Can not find source file: $URL"
+		cp -u $URL $FILE
+		return 0
+	}
+	[ -z "$KEY$TAG" ] && {
+		echo "curl --max-filesize 2M -s $PARAM $URL"
+		curl --max-filesize 2M -s $PARAM $URL >$FILE
+	} || {
+		[ -z "$KEY" -o -z "$TAG" ] && ERR "Both \"KEY\" and \"TAG\" should define"
+		#eg:
+		#  sed -e '/SS节点/,/<\/pre>/!d;/<pre>/,/<\/pre>/!d;s/.*<pre>//;s/<\/pre>.*//'
+		SED_CMD="/$KEY/,/<\/$TAG>/!d;/<$TAG>/,/<\/$TAG>/!d;s/.*<$TAG>//;s/<\/$TAG>.*//"
+		curl --max-filesize 2M -s $PARAM $URL | sed -e "${SED_CMD}" >$FILE
+	}
 	#check file size
-	[ -s $FILE ] && return 0
-	return 1
+	[ ! -s $FILE ] && return 1
+	#Check if URL
+	URL=`cat $FILE | head -n 1`
+	IS_URL=`get_prefix "$URL"`
+	[ -z "${IS_URL}" ] && return 0
+	#Download from URL
+	echo "URL:$URL"
+	DBG "curl --max-filesize 2M -s $PARAM $URL >$FILE"
+	curl --max-filesize 2M -s $PARAM $URL >$FILE
 }
 #Usage: SRC_DECODE source_file_name dist_file_name
 SRC_DECODE(){
@@ -71,7 +91,8 @@ while getopts ":f:k:t:u:d:" opt; do
 done
 
 #Check varables
-KEY_LIST="KEY TAG URL DECODE"
+#KEY_LIST="KEY TAG URL DECODE"
+KEY_LIST="URL"
 for chk in $KEY_LIST;do
 	eval val="\${$chk}"
 	[ -z "$val" ] && ERR "Key \"$chk\" not defined"

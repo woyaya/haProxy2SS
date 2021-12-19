@@ -65,7 +65,7 @@ done
 
 function cleanup() {
 	LOG "Cleanup $WORK_DIR"
-	[ "$DEBUG" != "1" ] && rm  -rf $WORK_DIR
+#	[ "$DEBUG" != "1" ] && rm  -rf $WORK_DIR
 }
 trap cleanup EXIT
 
@@ -75,7 +75,7 @@ for name in $DEPS;do
 	EXIST=`which $name 2>/dev/null`
 	[ -z "$EXIST" ] && ERR "Can not find $name, install it first"
 done
-SOURCES=`ls $SRC_DIR/* 2>/dev/null`
+SOURCES=`ls $SRC_DIR/*.cfg 2>/dev/null`
 [ -z "$SOURCES" ] && ERR "Can not find source file @ dir \"./$SRC_DIR\""
 
 echo "Get server count and port list from haproxy config file"
@@ -90,13 +90,16 @@ rm -rf $resource_list
 for src in $SOURCES;do
 	LOG "Processing $src"
 	. $src
-	KEY_LIST="KEY TAG URL"
+	#KEY_LIST="KEY TAG URL"
+	KEY_LIST="URL"
 	for chk in $KEY_LIST;do
 		eval val="\${$chk}"
 		[ -z "$val" ] && ERR "Key \"$chk\" not defined @ $src"
 	done
 	export DECODE
-	$FUN_DIR/resource_get.sh -u "$URL" -k "$KEY" -t "$TAG" -f "$resource_list" &
+	[ -n "$KEY" ] && KEY="-k $KEY"
+	[ -n "$TAG" ] && TAG="-t $TAG"
+	$FUN_DIR/resource_get.sh -u "$URL" $KEY $TAG -f "$resource_list" &
 	childs+=("$!")
 done
 
@@ -115,13 +118,14 @@ for timeout in `seq 1 5`;do
 	count=0
 	port=$TEST_PORT
 	while read line;do
-		PREFIX=`echo "$line" | sed 's/:\/\/.*//'`
+		PREFIX=`get_prefix "$line"`
 		[ ! -f $PROTO_DIR/${PREFIX} ] && {
 			WRN "Unsupported protocol \"$PREFIX\""
 			continue
 		}
 		
 		index=`expr $port "-" $TEST_PORT`
+		LOG "$FUN_DIR/resource_process.sh -c -i $index -l $port -t $timeout -f $valid \"$line\""
 		$FUN_DIR/resource_process.sh -c -i $index -l $port -t $timeout -f $valid "$line" &
 		count=`expr $count "+" 1`
 		[ "$count" -lt $PARALLEL_COUNT ] && {
