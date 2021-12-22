@@ -30,7 +30,6 @@ SRC_GET(){
 		return 0
 	}
 	[ -z "$KEY$TAG" ] && {
-		echo "curl --max-filesize 2M -s $PARAM $URL"
 		curl --max-filesize 2M -s $PARAM $URL >$FILE
 	} || {
 		[ -z "$KEY" -o -z "$TAG" ] && ERR "Both \"KEY\" and \"TAG\" should define"
@@ -45,8 +44,8 @@ SRC_GET(){
 	URL=`cat $FILE | head -n 1`
 	IS_URL=`get_prefix "$URL"`
 	[ -z "${IS_URL}" ] && return 0
+	[ "${IS_URL}" != "http" -a "${IS_URL}" != "https" ] && return 0
 	#Download from URL
-	echo "URL:$URL"
 	DBG "curl --max-filesize 2M -s $PARAM $URL >$FILE"
 	curl --max-filesize 2M -s $PARAM $URL >$FILE
 }

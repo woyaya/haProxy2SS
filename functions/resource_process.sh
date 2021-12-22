@@ -77,7 +77,7 @@ for chk in $KEY_LIST;do
 done
 
 PREFIX=`get_prefix "$resource"`
-[ ! -f $PROTO_DIR/$PREFIX ] && {
+[ ! -f "$PROTO_DIR/$PREFIX" ] && {
 	WRN "Unsupport resource: $resource"
 	EXIT
 }
@@ -87,7 +87,11 @@ LOG "Try to parse resource: \"$resource\""
 CONTENT=`echo $resource | sed 's/.*:\/\///;s/#.*//;s/ *$//'`
 [ -z "$CONTENT" ] && EXIT "Invalid resource: $resource"
 TEMP=`echo "$CONTENT" | $DECODER 2>/dev/null`
-[ -n "$TEMP" ] && CONTENT=$TEMP
+[ -n "$TEMP" ] && {
+	BYTES=`echo -n "$TEMP" | base64 | wc -c`
+	CONTENT=$TEMP`echo -n $CONTENT | cut -b ${BYTES}-`
+}
+DBG "CONTENT:$CONTENT"
 #eg:
 #	aes-256-gcm:CUndSZnYsPKcu6Kj8THVMBHD@103.156.50.107:39772
 for c in $SEPARAT_LIST;do
@@ -99,6 +103,8 @@ done
 [ -n "$PASSWD_INDEX" ] && PASSWD=`echo $CONTENT | awk "{print \\$\$PASSWD_INDEX}"`
 [ -n "$IP_INDEX" ] && IP=`echo $CONTENT | awk "{print \\$\$IP_INDEX}"`
 [ -n "$PORT_INDEX" ] && PORT=`echo $CONTENT | awk "{print \\$\$PORT_INDEX}"`
+
+DBG "IP:$IP PORT:$PORT USR:$USR PASSWD:$PASSWD ALG:$ALG"
 
 . $PROTO_DIR/$PREFIX
 

@@ -12,6 +12,8 @@ LOG_LEVEL=${LOG_LEVEL:-2}
 #common proxy configs
 TIMEOUT=1
 
+export LISTEN_PORT
+
 #common configs
 EXEC=`basename $0`
 export EXEC
@@ -119,7 +121,7 @@ for timeout in `seq 1 5`;do
 	port=$TEST_PORT
 	while read line;do
 		PREFIX=`get_prefix "$line"`
-		[ ! -f $PROTO_DIR/${PREFIX} ] && {
+		[ ! -f "$PROTO_DIR/${PREFIX}" ] && {
 			WRN "Unsupported protocol \"$PREFIX\""
 			continue
 		}
